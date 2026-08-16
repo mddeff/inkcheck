@@ -29,5 +29,17 @@
   {% endwith %}
 
   {% block content %}{% endblock %}
+
+  <div id="modal-overlay" class="modal-overlay no-print" hidden>
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="modal-message">
+      <p id="modal-message"></p>
+      <div class="modal-actions">
+        <button type="button" class="secondary" id="modal-cancel">Cancel</button>
+        <button type="button" id="modal-ok">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

@@ -69,16 +69,14 @@
       <td>${{ t.running_balance_cents | money }}</td>
       <td class="actions no-print">
         {% if t.type == 'check' and not t.voided %}
-          <a href="{{ url_for('print_transaction', txn_id=t.id) }}"
-             {% if t.printed_at %}onclick="return confirm('Check #{{ t.check_number }} was already printed on {{ t.printed_at }}. Print again?')"{% endif %}>
-            <button type="button" class="secondary">
-              {{ 'Reprint' if t.printed_at else 'Print' }}
-            </button>
+          <a class="btn secondary" href="{{ url_for('print_transaction', txn_id=t.id) }}" target="_blank" rel="noopener"
+             {% if t.printed_at %}data-confirm="Check #{{ t.check_number }} was already printed on {{ t.printed_at }}. Print again?"{% endif %}>
+            {{ 'Reprint' if t.printed_at else 'Print' }}
           </a>
         {% endif %}
-        <form class="inline" action="{{ url_for('void_transaction', txn_id=t.id) }}" method="post"
-              onsubmit="return confirm('{{ 'Un-void' if t.voided else 'Void' }} this {{ t.type }}?')">
-          <button type="submit" class="secondary">{{ 'Un-void' if t.voided else 'Void' }}</button>
+        <form class="inline" action="{{ url_for('void_transaction', txn_id=t.id) }}" method="post">
+          <button type="submit" class="secondary"
+                  data-confirm="{{ 'Un-void' if t.voided else 'Void' }} this {{ t.type }}?">{{ 'Un-void' if t.voided else 'Void' }}</button>
         </form>
       </td>
     </tr>

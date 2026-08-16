@@ -21,7 +21,7 @@ page:
 
 offset:
   x_pt: 0
-  y_pt: 0
+  y_pt: -10
 
 font:
   name: Helvetica
@@ -29,18 +29,18 @@ font:
 
 fields:
   date:
-    x: 495
+    x: 500/
     y: 728
   pay_to:
     x: 85
     y: 694
   amount_numeric:
-    x: 583           # same right margin as `date` — the two lines share it on this stock
+    x: 553           # same right margin as `date` — the two lines share it on this stock
     y: 694
     align: right
   amount_words:
     x: 78
     y: 670
   memo:
-    x: 50            # this check stock has no ruled memo line, just the "MEMO" label —
+    x: 60            # this check stock has no ruled memo line, just the "MEMO" label —
     y: 602           # positioned right after the label instead of on a line
