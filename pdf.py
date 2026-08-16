@@ -83,6 +83,44 @@ def render_check_pdf(txn):
     draw("amount_words", spell_out_cents(txn["amount_cents"]))
     draw("memo", txn["memo"] or "")
 
+    _draw_receipt(c, layout, txn, offset)
+
     c.showPage()
     c.save()
     return buf.getvalue()
+
+
+def _draw_receipt(c, layout, txn, offset):
+    """Draw a labeled receipt copy into the middle third of the page."""
+    receipt = layout.get("receipt")
+    if not receipt or not receipt.get("enabled", True):
+        return
+
+    x = receipt.get("x", 78) + offset.get("x_pt", 0)
+    y = receipt.get("top_y", 500) + offset.get("y_pt", 0)
+    line_height = receipt.get("line_height", 22)
+    label_col = receipt.get("label_col", 75)
+    rfont = receipt.get("font", {"name": "Helvetica", "size": 11})
+    name = rfont.get("name", "Helvetica")
+    size = rfont.get("size", 11)
+    bold = name if name.endswith("-Bold") else name + "-Bold"
+
+    amount = txn["amount_cents"] / 100
+
+    c.setFont(bold, receipt.get("title_font_size", 13))
+    c.drawString(x, y, receipt.get("title", "Check Receipt"))
+    y -= line_height * 1.4
+
+    rows = [
+        ("Date", txn["date"]),
+        ("Check #", txn["check_number"] or ""),
+        ("Pay to", txn["description"]),
+        ("Amount", f"${amount:,.2f}  ({spell_out_cents(txn['amount_cents'])})"),
+        ("Memo", txn["memo"] or ""),
+    ]
+    for label, value in rows:
+        c.setFont(bold, size)
+        c.drawString(x, y, label)
+        c.setFont(name, size)
+        c.drawString(x + label_col, y, value)
+        y -= line_height

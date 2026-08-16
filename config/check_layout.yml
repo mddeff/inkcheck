@@ -29,7 +29,7 @@ font:
 
 fields:
   date:
-    x: 500/
+    x: 500
     y: 728
   pay_to:
     x: 85
@@ -44,3 +44,22 @@ fields:
   memo:
     x: 60            # this check stock has no ruled memo line, just the "MEMO" label —
     y: 602           # positioned right after the label instead of on a line
+
+# Receipt copy printed into the MIDDLE third of the page (the check stock is
+# perforated in thirds; top third is the check itself, middle third is torn
+# off and kept as a receipt). This section is blank stock with no pre-printed
+# lines, so the receipt is drawn with its own labels. The page's global
+# `offset` above applies here too (same physical sheet). Set enabled: false
+# to skip it. The three thirds are y 528-792 (check), 264-528 (this receipt),
+# and 0-264 (blank).
+receipt:
+  enabled: true
+  x: 78            # left margin for the label column
+  top_y: 500       # baseline of the title line (must sit within 264-528)
+  line_height: 22
+  label_col: 75    # horizontal offset from x where each value starts
+  title: Check Receipt
+  title_font_size: 13
+  font:
+    name: Helvetica
+    size: 11
