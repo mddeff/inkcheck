@@ -1,0 +1,10 @@
+.git
+__pycache__/
+*.pyc
+.venv/
+instance/
+data/
+check_template.pdf
+example.docker-compose.yml
+README.md
+.claude/

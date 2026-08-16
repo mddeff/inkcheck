@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Register — Checkprint{% endblock %}
+{% block content %}
+
+<form class="filters no-print" method="get" action="{{ url_for('register') }}">
+  <div class="filter-field">
+    <label for="date_from">From</label>
+    <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}">
+  </div>
+  <div class="filter-field">
+    <label for="date_to">To</label>
+    <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}">
+  </div>
+  <div class="filter-field">
+    <label for="type">Type</label>
+    <select id="type" name="type">
+      <option value="" {{ 'selected' if not filters.type }}>All</option>
+      <option value="check" {{ 'selected' if filters.type == 'check' }}>Check</option>
+      <option value="deposit" {{ 'selected' if filters.type == 'deposit' }}>Deposit</option>
+    </select>
+  </div>
+  <div class="filter-field">
+    <label for="check_from">Check # from</label>
+    <input type="number" id="check_from" name="check_from" value="{{ filters.check_from }}" inputmode="numeric">
+  </div>
+  <div class="filter-field">
+    <label for="check_to">Check # to</label>
+    <input type="number" id="check_to" name="check_to" value="{{ filters.check_to }}" inputmode="numeric">
+  </div>
+  <div class="filter-field filter-search">
+    <label for="q">Search description / memo</label>
+    <input type="text" id="q" name="q" value="{{ filters.q }}" placeholder="e.g. plumbing">
+  </div>
+  <div class="filter-actions">
+    <button type="submit" class="secondary">Filter</button>
+    <a href="{{ url_for('register') }}">Clear</a>
+  </div>
+</form>
+
+<div class="register-toolbar no-print">
+  <span class="muted-note">Showing {{ transactions | length }} transaction{{ '' if transactions | length == 1 else 's' }}</span>
+  <button type="button" class="secondary" onclick="window.print()">Print register</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Type</th>
+      <th>Description</th>
+      <th>Check #</th>
+      <th>Memo</th>
+      <th>Amount</th>
+      <th>Balance</th>
+      <th class="no-print">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in transactions %}
+    <tr class="{{ 'voided' if t.voided else '' }}">
+      <td>{{ t.date }}</td>
+      <td>{{ t.type }}</td>
+      <td>{{ t.description }}</td>
+      <td>{{ t.check_number or '' }}</td>
+      <td>{{ t.memo or '' }}</td>
+      <td class="{{ 'amount-out' if t.type == 'check' else 'amount-in' }}">
+        {{ '-' if t.type == 'check' else '+' }}${{ t.amount_cents | money }}
+      </td>
+      <td>${{ t.running_balance_cents | money }}</td>
+      <td class="actions no-print">
+        {% if t.type == 'check' and not t.voided %}
+          <a href="{{ url_for('print_transaction', txn_id=t.id) }}"
+             {% if t.printed_at %}onclick="return confirm('Check #{{ t.check_number }} was already printed on {{ t.printed_at }}. Print again?')"{% endif %}>
+            <button type="button" class="secondary">
+              {{ 'Reprint' if t.printed_at else 'Print' }}
+            </button>
+          </a>
+        {% endif %}
+        <form class="inline" action="{{ url_for('void_transaction', txn_id=t.id) }}" method="post"
+              onsubmit="return confirm('{{ 'Un-void' if t.voided else 'Void' }} this {{ t.type }}?')">
+          <button type="submit" class="secondary">{{ 'Un-void' if t.voided else 'Void' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8">{{ 'No transactions match this filter.' if filters.values() | select | list else 'No transactions yet.' }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

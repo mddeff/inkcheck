@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Add a deposit — Checkprint{% endblock %}
+{% block content %}
+
+<div class="card">
+  <form method="post">
+    <div class="field">
+      <label for="date">Date</label>
+      <input type="date" id="date" name="date" value="{{ today }}" required>
+    </div>
+    <div class="field">
+      <label for="description">Source</label>
+      <input type="text" id="description" name="description" placeholder="e.g. Opening balance, Paycheck, transfer" required autofocus>
+    </div>
+    <div class="field">
+      <label for="amount">Amount</label>
+      <input type="text" id="amount" name="amount" placeholder="0.00" inputmode="decimal" required>
+    </div>
+    <button type="submit">Save deposit</button>
+  </form>
+</div>
+
+{% endblock %}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Checkprint{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="no-print">
+    <h1>Checkprint</h1>
+    {% if balance_cents is defined %}
+    <div class="balance">Balance: ${{ balance_cents | money }}</div>
+    {% endif %}
+  </header>
+
+  <nav class="tabs no-print">
+    <a class="{{ 'active' if request.endpoint == 'register' else '' }}" href="{{ url_for('register') }}">Register</a>
+    <a class="{{ 'active' if request.endpoint == 'new_check' else '' }}" href="{{ url_for('new_check') }}">Write a check</a>
+    <a class="{{ 'active' if request.endpoint == 'new_deposit' else '' }}" href="{{ url_for('new_deposit') }}">Add a deposit</a>
+  </nav>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      {% for m in messages %}
+        <div class="flash no-print">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,46 @@
+# Field positions for printing onto pre-printed check stock.
+# Units are PDF points (1/72 inch), origin at bottom-left of the page.
+#
+# Coordinates below are measured directly from check_template.pdf (a 600 DPI
+# flatbed scan, 4956x6456px): each ruled line's pixel position was located,
+# then converted px/600*72 = pt. The one thing this can't account for is
+# whether the scanner's auto-crop trimmed a sliver of white margin off the
+# original page before saving — that would shift everything by the same
+# fixed amount. So this should be close, but still do one
+# print-and-hold-against-a-real-check pass and adjust:
+#   - if everything is off by a consistent amount, change `offset` instead
+#     of editing every field (this is the scanner-crop-offset case, and is
+#     the most likely kind of error here)
+#   - if only one field is off, edit that field's x/y
+# This file is read fresh on every print, so changes apply immediately
+# with no rebuild/restart needed.
+
+page:
+  width_pt: 612    # US Letter, 8.5in
+  height_pt: 792   # US Letter, 11in
+
+offset:
+  x_pt: 0
+  y_pt: 0
+
+font:
+  name: Helvetica
+  size: 11
+
+fields:
+  date:
+    x: 495
+    y: 728
+  pay_to:
+    x: 85
+    y: 694
+  amount_numeric:
+    x: 583           # same right margin as `date` — the two lines share it on this stock
+    y: 694
+    align: right
+  amount_words:
+    x: 78
+    y: 670
+  memo:
+    x: 50            # this check stock has no ruled memo line, just the "MEMO" label —
+    y: 602           # positioned right after the label instead of on a line

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Write a check — Checkprint{% endblock %}
+{% block content %}
+
+<div class="card">
+  <form method="post">
+    <div class="field">
+      <label for="date">Date</label>
+      <input type="date" id="date" name="date" value="{{ today }}" required>
+    </div>
+    <div class="field">
+      <label for="pay_to">Pay to the order of</label>
+      <input type="text" id="pay_to" name="pay_to" required autofocus>
+    </div>
+    <div class="field">
+      <label for="amount">Amount</label>
+      <input type="text" id="amount" name="amount" placeholder="0.00" inputmode="decimal" required>
+    </div>
+    <div class="field">
+      <label for="check_number">Check number</label>
+      <input type="text" id="check_number" name="check_number" value="{{ next_check_number }}" required>
+    </div>
+    <div class="field">
+      <label for="memo">Memo</label>
+      <input type="text" id="memo" name="memo">
+    </div>
+    <button type="submit">Save check</button>
+  </form>
+</div>
+
+{% endblock %}

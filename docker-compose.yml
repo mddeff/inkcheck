@@ -1,0 +1,24 @@
+services:
+  checkprint:
+    build: .
+    container_name: checkprint
+    volumes:
+      - ./data:/data
+      - ./config:/app/config
+    environment:
+      - TZ=America/New_York
+      - DATABASE_PATH=/data/checkprint.db
+    networks:
+      - proxy
+    restart: unless-stopped
+#    ports:
+#      - "8000:8000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.checkprint.rule=Host(`checkprint.ce.int`)"
+      - "traefik.http.routers.checkprint.entrypoints=web,websecure"
+      - "traefik.http.services.checkprint.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true
