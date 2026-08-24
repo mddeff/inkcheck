@@ -13,6 +13,23 @@ Templates included work with [Harland Clarke High Security Checks](https://www.c
 
 No authentication — intended to run behind a reverse proxy (e.g. Traefik) on a trusted internal network.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="screenshots/register.png" alt="Register"><br><sub><b>Register</b> — running balance, filters, and per-row print/void actions.</sub></td>
+    <td width="50%"><img src="screenshots/write-check.png" alt="Write a check"><br><sub><b>Write a check</b> — payee, amount, auto-suggested check number, and memo.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="screenshots/add-deposit.png" alt="Add a deposit"><br><sub><b>Add a deposit</b> — source and amount; balance starts at zero.</sub></td>
+    <td width="50%"><img src="screenshots/print-preview.png" alt="Print preview"><br><sub><b>Print preview</b> — positioned check face over a tear-off receipt.</sub></td>
+  </tr>
+</table>
+
+A check printed onto real Harland Clarke stock (account details redacted):
+
+<img src="examples/printed-check.png" alt="Printed check" width="50%">
+
 ## Run
 
 With the published image (see `docker-compose.yml` for the Traefik labels and volumes):
