@@ -8,3 +8,5 @@ check_template.pdf
 example.docker-compose.yml
 README.md
 .claude/
+.github/
+examples/

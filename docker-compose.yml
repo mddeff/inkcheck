@@ -1,13 +1,14 @@
 services:
-  checkprint:
-    build: .
-    container_name: checkprint
+  inkcheck:
+    image: ghcr.io/mddeff/inkcheck:latest
+#    build: .          # dev fallback: build from source instead of pulling
+    container_name: inkcheck
     volumes:
       - ./data:/data
       - ./config:/app/config
     environment:
       - TZ=America/New_York
-      - DATABASE_PATH=/data/checkprint.db
+      - DATABASE_PATH=/data/inkcheck.db
     networks:
       - proxy
     restart: unless-stopped
@@ -15,9 +16,9 @@ services:
 #      - "8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.checkprint.rule=Host(`checkprint.ce.int`)"
-      - "traefik.http.routers.checkprint.entrypoints=web,websecure"
-      - "traefik.http.services.checkprint.loadbalancer.server.port=8000"
+      - "traefik.http.routers.inkcheck.rule=Host(`inkcheck.ce.int`)"
+      - "traefik.http.routers.inkcheck.entrypoints=web,websecure"
+      - "traefik.http.services.inkcheck.loadbalancer.server.port=8000"
 
 networks:
   proxy:

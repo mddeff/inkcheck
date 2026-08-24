@@ -1,0 +1,99 @@
+name: Build & Publish
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach SBOM to GitHub Releases on tags
+      packages: write # push image to GHCR
+      id-token: write # sign build provenance / SBOM attestations
+      attestations: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # GHCR requires a lowercase image path; the owner login may contain capitals.
+      # Image name is pinned to <owner>/inkcheck so it's independent of the repo name.
+      - name: Compute lowercase image name
+        run: echo "IMAGE_NAME=${GITHUB_REPOSITORY_OWNER,,}/inkcheck" >> "$GITHUB_ENV"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # On PRs we build (validating the Dockerfile) and load locally but do not
+      # push. On main/tags we push to GHCR with provenance + an SBOM attestation
+      # baked into the image by BuildKit.
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: ${{ github.event_name != 'pull_request' }}
+          sbom: ${{ github.event_name != 'pull_request' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # BuildKit already baked an SPDX SBOM attestation into the pushed image
+      # (sbom: true above). Pull it back out into a standalone file with the
+      # Docker CLI already on the runner — no third-party SBOM action needed.
+      - name: Extract SBOM from pushed image
+        if: github.event_name != 'pull_request'
+        run: |
+          docker buildx imagetools inspect \
+            "${REGISTRY}/${IMAGE_NAME}@${{ steps.build.outputs.digest }}" \
+            --format '{{ json .SBOM.SPDX }}' > inkcheck.spdx.json
+
+      - name: Upload SBOM artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: inkcheck-sbom-spdx
+          path: inkcheck.spdx.json
+
+      # On version tags, publish a GitHub Release with the SBOM attached, using
+      # the built-in gh CLI + GITHUB_TOKEN (no third-party release action).
+      - name: Publish release with SBOM
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" inkcheck.spdx.json \
+            --title "$GITHUB_REF_NAME" --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" inkcheck.spdx.json --clobber

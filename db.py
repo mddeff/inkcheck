@@ -1,8 +1,9 @@
 import os
 import sqlite3
+from contextlib import contextmanager
 
 DATABASE_PATH = os.environ.get(
-    "DATABASE_PATH", os.path.join(os.path.dirname(__file__), "instance", "checkprint.db")
+    "DATABASE_PATH", os.path.join(os.path.dirname(__file__), "instance", "inkcheck.db")
 )
 
 SCHEMA = """
@@ -45,22 +46,34 @@ def get_connection():
     return conn
 
 
-def init_db():
+@contextmanager
+def _connect():
+    """Yield a connection that is always closed, committing on clean exit and
+    rolling back if the body raises."""
     conn = get_connection()
-    conn.executescript(SCHEMA)
     try:
-        conn.executescript(UNIQUE_CHECK_NUMBER_INDEX)
-    except sqlite3.IntegrityError:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
         conn.close()
-        raise RuntimeError(
-            "Cannot start: duplicate check_number values already exist in "
-            f"{DATABASE_PATH}, so check-number uniqueness can't be enforced. Find "
-            "them with `SELECT check_number, COUNT(*) FROM transactions WHERE "
-            "type='check' GROUP BY check_number HAVING COUNT(*) > 1;` and fix or "
-            "remove the duplicates, then restart."
-        )
-    conn.commit()
-    conn.close()
+
+
+def init_db():
+    with _connect() as conn:
+        conn.executescript(SCHEMA)
+        try:
+            conn.executescript(UNIQUE_CHECK_NUMBER_INDEX)
+        except sqlite3.IntegrityError:
+            raise RuntimeError(
+                "Cannot start: duplicate check_number values already exist in "
+                f"{DATABASE_PATH}, so check-number uniqueness can't be enforced. Find "
+                "them with `SELECT check_number, COUNT(*) FROM transactions WHERE "
+                "type='check' GROUP BY check_number HAVING COUNT(*) > 1;` and fix or "
+                "remove the duplicates, then restart."
+            )
 
 
 def _escape_like(value):
@@ -105,77 +118,62 @@ def list_transactions(filters=None):
         query += " WHERE " + " AND ".join(clauses)
     query += " ORDER BY date, id"
 
-    conn = get_connection()
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return rows
+    with _connect() as conn:
+        return conn.execute(query, params).fetchall()
 
 
 def get_current_balance_cents():
     """The true current balance, as of the latest transaction, independent of any filter."""
-    conn = get_connection()
-    row = conn.execute(
-        f"SELECT running_balance_cents FROM ({BALANCE_SUBQUERY}) ORDER BY date DESC, id DESC LIMIT 1"
-    ).fetchone()
-    conn.close()
+    with _connect() as conn:
+        row = conn.execute(
+            f"SELECT running_balance_cents FROM ({BALANCE_SUBQUERY}) ORDER BY date DESC, id DESC LIMIT 1"
+        ).fetchone()
     return row["running_balance_cents"] if row else 0
 
 
 def get_transaction(txn_id):
-    conn = get_connection()
-    row = conn.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,)).fetchone()
-    conn.close()
-    return row
+    with _connect() as conn:
+        return conn.execute("SELECT * FROM transactions WHERE id = ?", (txn_id,)).fetchone()
 
 
 def insert_check(date, amount_cents, description, check_number, memo):
-    conn = get_connection()
     try:
-        conn.execute(
-            """INSERT INTO transactions (type, date, amount_cents, description, check_number, memo)
-               VALUES ('check', ?, ?, ?, ?, ?)""",
-            (date, amount_cents, description, check_number, memo),
-        )
-        conn.commit()
+        with _connect() as conn:
+            conn.execute(
+                """INSERT INTO transactions (type, date, amount_cents, description, check_number, memo)
+                   VALUES ('check', ?, ?, ?, ?, ?)""",
+                (date, amount_cents, description, check_number, memo),
+            )
     except sqlite3.IntegrityError:
         raise DuplicateCheckNumberError(f"Check number {check_number} is already in use")
-    finally:
-        conn.close()
 
 
 def insert_deposit(date, amount_cents, description):
-    conn = get_connection()
-    conn.execute(
-        """INSERT INTO transactions (type, date, amount_cents, description)
-           VALUES ('deposit', ?, ?, ?)""",
-        (date, amount_cents, description),
-    )
-    conn.commit()
-    conn.close()
+    with _connect() as conn:
+        conn.execute(
+            """INSERT INTO transactions (type, date, amount_cents, description)
+               VALUES ('deposit', ?, ?, ?)""",
+            (date, amount_cents, description),
+        )
 
 
 def toggle_void(txn_id):
-    conn = get_connection()
-    conn.execute("UPDATE transactions SET voided = 1 - voided WHERE id = ?", (txn_id,))
-    conn.commit()
-    conn.close()
+    with _connect() as conn:
+        conn.execute("UPDATE transactions SET voided = 1 - voided WHERE id = ?", (txn_id,))
 
 
 def mark_printed(txn_id):
-    conn = get_connection()
-    conn.execute(
-        "UPDATE transactions SET printed_at = datetime('now') WHERE id = ?", (txn_id,)
-    )
-    conn.commit()
-    conn.close()
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE transactions SET printed_at = datetime('now') WHERE id = ?", (txn_id,)
+        )
 
 
 def get_next_check_number():
-    conn = get_connection()
-    row = conn.execute(
-        """SELECT MAX(CAST(check_number AS INTEGER)) AS max_num
-           FROM transactions WHERE type = 'check' AND check_number IS NOT NULL"""
-    ).fetchone()
-    conn.close()
+    with _connect() as conn:
+        row = conn.execute(
+            """SELECT MAX(CAST(check_number AS INTEGER)) AS max_num
+               FROM transactions WHERE type = 'check' AND check_number IS NOT NULL"""
+        ).fetchone()
     max_num = row["max_num"]
     return str(max_num + 1) if max_num is not None else "1"

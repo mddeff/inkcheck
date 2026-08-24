@@ -1,4 +1,5 @@
 import os
+import secrets
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from io import BytesIO
@@ -9,7 +10,12 @@ import db
 import pdf
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-not-secret")
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+if not os.environ.get("SECRET_KEY"):
+    app.logger.warning(
+        "SECRET_KEY is not set; using an ephemeral random key. Set SECRET_KEY for "
+        "production (and required if you run more than one worker)."
+    )
 
 db.init_db()
 
@@ -20,7 +26,10 @@ def dollars_to_cents(raw):
         value = Decimal(cleaned)
     except InvalidOperation:
         raise ValueError(f"'{raw}' is not a valid dollar amount")
-    return int((value * 100).to_integral_value(rounding=ROUND_HALF_UP))
+    cents = int((value * 100).to_integral_value(rounding=ROUND_HALF_UP))
+    if cents <= 0:
+        raise ValueError("Amount must be greater than zero")
+    return cents
 
 
 def cents_to_dollars_str(cents):
@@ -97,7 +106,7 @@ def void_transaction(txn_id):
     return redirect(url_for("register"))
 
 
-@app.route("/transactions/<int:txn_id>/print")
+@app.route("/transactions/<int:txn_id>/print", methods=["POST"])
 def print_transaction(txn_id):
     txn = db.get_transaction(txn_id)
     if txn is None:

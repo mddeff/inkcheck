@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Register — Checkprint{% endblock %}
+{% block title %}Register — InkCheck{% endblock %}
 {% block content %}
 
 <form class="filters no-print" method="get" action="{{ url_for('register') }}">
@@ -69,10 +69,12 @@
       <td>${{ t.running_balance_cents | money }}</td>
       <td class="actions no-print">
         {% if t.type == 'check' and not t.voided %}
-          <a class="btn secondary" href="{{ url_for('print_transaction', txn_id=t.id) }}" target="_blank" rel="noopener"
-             {% if t.printed_at %}data-confirm="Check #{{ t.check_number }} was already printed on {{ t.printed_at }}. Print again?"{% endif %}>
-            {{ 'Reprint' if t.printed_at else 'Print' }}
-          </a>
+          <form class="inline" action="{{ url_for('print_transaction', txn_id=t.id) }}" method="post" target="_blank">
+            <button type="submit" class="secondary"
+                    {% if t.printed_at %}data-confirm="Check #{{ t.check_number }} was already printed on {{ t.printed_at }}. Print again?"{% endif %}>
+              {{ 'Reprint' if t.printed_at else 'Print' }}
+            </button>
+          </form>
         {% endif %}
         <form class="inline" action="{{ url_for('void_transaction', txn_id=t.id) }}" method="post">
           <button type="submit" class="secondary"

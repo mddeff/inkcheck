@@ -104,7 +104,7 @@ tr.voided { background: var(--void-bg); color: var(--muted); text-decoration: li
 
 form.inline { display: inline; }
 
-button, input[type=submit], a.btn {
+button, input[type=submit] {
   background: var(--accent);
   color: #fff;
   border: none;
@@ -112,12 +112,9 @@ button, input[type=submit], a.btn {
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
-  display: inline-block;
-  text-decoration: none;
-  line-height: 1.4;
 }
 
-button.secondary, a.btn.secondary {
+button.secondary {
   background: transparent;
   color: var(--fg);
   border: 1px solid var(--border);

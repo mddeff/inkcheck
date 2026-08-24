@@ -1,71 +1,66 @@
-# checkprint
+# InkCheck
 
-Minimal check register + PDF check printing app. Tracks checks written and
-deposits made, computes a running balance, and prints checks onto
-pre-printed check stock via a PDF with configurable field positions.
+A minimal check register and check-printing web app. Records checks and
+deposits, keeps a running balance, prints checks onto pre-printed check stock
+as a positioned PDF, and prints a matching tear-off receipt onto the middle
+third of the same perforated sheet.
 
-No authentication — intended to run behind a reverse proxy (e.g. Traefik)
-on a trusted internal network. Auth (Authentik) is a planned v2, not part
-of this app.
+No authentication — intended to run behind a reverse proxy (e.g. Traefik) on a
+trusted internal network.
 
-## Run locally
+## Run
+
+With the published image (see `docker-compose.yml` for the Traefik labels and
+volumes):
 
 ```
-python3 -m venv .venv
-source .venv/bin/activate
+docker compose up -d
+```
+
+The SQLite database persists to `./data/inkcheck.db` and the layout config is
+bind-mounted from `./config/`. Uncomment the `ports` block in the compose file
+to reach it directly without a proxy.
+
+For local development:
+
+```
+python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-python app.py
+python app.py            # http://localhost:8000
 ```
 
-Visit http://localhost:8000. The SQLite database is created at
-`instance/checkprint.db` on first run.
+## Check layout (`config/check_layout.yml`)
 
-## Run with Docker Compose
+Controls where each field is drawn on the printed PDF, in points (1/72"),
+origin bottom-left. The file is bind-mounted and re-read on every print, so
+edits apply on the next print with no rebuild or restart. Coordinates were
+measured from a 600 DPI scan of the real stock; still do one
+print-and-hold-against-a-check pass to confirm.
 
-```
-docker compose up --build
-```
+- Everything shifted the same way → adjust `offset` once (covers paper-feed drift).
+- One field off → edit that field's `x`/`y`.
+- `receipt:` controls the middle-third receipt copy (`enabled: false` to skip it).
 
-This builds the image, persists the database to `./data/checkprint.db` on
-the host, and joins the external `proxy` Docker network with Traefik
-labels for `checkprint.ce.int`. Adjust the `Host()` rule and `TZ` in
-`docker-compose.yml` as needed. Uncomment the `ports` block if you want to
-reach it directly without Traefik.
+> The `config/` **directory** is bind-mounted, not the file, on purpose: editors
+> save by writing a new file and renaming over the old one, which swaps the
+> inode and would break a single-file mount.
 
-## Tweaking check print positions
-
-`config/check_layout.yml` controls where each field is drawn on the printed PDF
-(in points, 1/72 inch, origin at bottom-left). It's bind-mounted into the
-container and re-read on every print request — edit it and reprint, no
-rebuild or restart required.
-
-The `config/` directory (not the file itself) is what's bind-mounted in
-`docker-compose.yml`. That's deliberate: editors and tools like `sed -i`
-typically save by writing a new file and renaming it over the old one,
-which swaps the inode — a bind mount of the *file* would keep pointing at
-the old, now-detached inode and silently stop seeing edits. Mounting the
-containing directory avoids that.
-
-If a printed check is off by a consistent amount in every field, adjust
-`offset.x_pt` / `offset.y_pt` once instead of editing every field
-individually (this covers the common case of uniform paper-feed drift).
-If only one field is off, edit that field's `x`/`y` directly.
-
-The current values are a first-pass estimate from `check_template.pdf` (a
-600 DPI scan) and have not yet been verified against a real printed
-check — expect to do one print-and-measure pass.
-
-## Data model notes
+## Data model
 
 - Money is stored as integer cents, never floats.
-- Running balance is computed on read (SQL window function), never
-  stored, so it can't drift from a manual edit or deleted row.
-- Voided transactions stay in the register (struck through) but are
-  excluded from the balance — nothing is ever hard-deleted.
-- The balance starts at zero. There's no separate "opening balance"
-  setting — seed the register with a normal deposit (e.g. described as
-  "Opening balance") dated whenever you want the history to start.
-- Check numbers are entered by the user (the app suggests the last
-  check number + 1, but never generates or enforces one) and are tracked
-  in the database only — they are **not** drawn on the printed PDF,
-  since they're already pre-printed on the physical check stock.
+- The running balance is computed on read (SQL window function), never stored,
+  so it can't drift from an edit or deletion.
+- Voided rows stay in the register (struck through) but drop out of the balance
+  — nothing is ever hard-deleted.
+- Balance starts at zero; there's no "opening balance" setting — seed it with a
+  normal deposit.
+- Check numbers are user-entered (the app suggests last + 1) and unique. They're
+  tracked in the DB and shown on the receipt, but **not** drawn on the check
+  face — the stock is already pre-printed with them.
+
+## Publishing
+
+`.github/workflows/build.yml` builds the image on push/PR and, on `main` and
+`v*` tags, publishes it to GHCR with build provenance and an SBOM attestation.
+A standalone SPDX SBOM is uploaded as a workflow artifact (and attached to the
+GitHub Release on tags).
