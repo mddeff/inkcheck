@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="static/logo-dark.png">
+  <img src="static/logo-light.png" alt="InkCheck" height="120">
+</picture>
+
 # InkCheck
 
 A minimal check register and check-printing web app. Records checks and
