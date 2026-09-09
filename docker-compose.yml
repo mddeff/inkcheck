@@ -1,6 +1,6 @@
 services:
   inkcheck:
-    image: ghcr.io/mddeff/inkcheck:latest
+    image: ghcr.io/mddeff/inkcheck:${INKCHECK_VERSION:-latest}
 #    build: .          # dev fallback: build from source instead of pulling
     container_name: inkcheck
     volumes:
@@ -16,7 +16,7 @@ services:
 #      - "8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.inkcheck.rule=Host(`inkcheck.ce.int`)"
+      - "traefik.http.routers.inkcheck.rule=Host(`${INKCHECK_HOST:-inkcheck.example.lan}`)"
       - "traefik.http.routers.inkcheck.entrypoints=web,websecure"
       - "traefik.http.services.inkcheck.loadbalancer.server.port=8000"
 

@@ -35,6 +35,7 @@ A check printed onto real Harland Clarke stock (account details redacted):
 With the published image (see `docker-compose.yml` for the Traefik labels and volumes):
 
 ```
+cp .env.example .env   # set INKCHECK_VERSION to pin a release, and INKCHECK_HOST for your domain
 docker compose up -d
 ```
 
